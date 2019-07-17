@@ -40,8 +40,10 @@ import java.util.Map;
 
 
 public class MainActivity extends AppCompatActivity {
-    public static final String DATETIME_FORMAT = "yyyy-MM-dd hh:mm:ss";
-    private SQLiteDatabase myDataBase;
+    private static final int CHECK_PERMISSION_REQUEST_CODE = 1;
+    private static final int CAMERA_REQUEST_CODE = 2;
+    private static final int ALBUM_REQUEST_CODE = 3;
+    public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private Uri imageFileUri;
     private Date uploadDate;
 
@@ -52,10 +54,10 @@ public class MainActivity extends AppCompatActivity {
 
         if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
                 checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, CHECK_PERMISSION_REQUEST_CODE);
         }
 
-        initialDataBase();
+        DbConnection.initialDataBase(this);
         loadWorkdayTimes();
 
         Button btArrive = findViewById(R.id.btArrive);
@@ -71,9 +73,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == 1 && resultCode == RESULT_OK) {
+        if (requestCode == CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
             appendPictureForDate(uploadDate, imageFileUri.getPath());
-        } else if (requestCode == 2 && resultCode == RESULT_OK && data != null) {
+        } else if (requestCode == ALBUM_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             Uri selectedFileUri = data.getData();
             String selectedFileRealPath = FileUtils.getRealPathFromUri(getApplicationContext(), selectedFileUri);
             File selectedFile = new File(selectedFileRealPath);
@@ -91,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode == 1) {
+        if (requestCode == CHECK_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 
             }
@@ -106,8 +108,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        System.out.println(date);
-        System.out.println(date.getTime());
+
         return date.getTime();
     }
 
@@ -116,23 +117,6 @@ public class MainActivity extends AppCompatActivity {
         Date date = new Date(time);
 
         return sdf.format(date);
-    }
-
-    public double getHourInterval(long fromDateTime, long toDateTime) {
-        double diff = (toDateTime - fromDateTime) / (1000 * 60 * 60);
-
-        return (double)Math.round(diff*100)/100;
-    }
-
-    public SQLiteDatabase initialDataBase() {
-        if (myDataBase == null) {
-            myDataBase = this.openOrCreateDatabase("WorkdayTime", MODE_PRIVATE, null);
-        }
-
-//        myDataBase.execSQL("drop table IF EXISTS workdaytimes");
-        myDataBase.execSQL("CREATE TABLE IF NOT EXISTS workdaytimes (id INTEGER PRIMARY KEY, arriveTime INTEGER , leaveTime INTEGER, imgPaths TEXT)");
-
-        return myDataBase;
     }
 
     public void insertWorkdayTimeRecord(Long arriveTime, Long leaveTime) {
@@ -144,14 +128,14 @@ public class MainActivity extends AppCompatActivity {
             arriveTime = leaveTime;
         }
         String sql = "INSERT INTO workdaytimes(arriveTime, leaveTime) values (?, ?)";
-        myDataBase.execSQL(sql, new Long[]{arriveTime, leaveTime});
+        DbConnection.getDbConnection(this).execSQL(sql, new Long[]{arriveTime, leaveTime});
     }
 
     public void loadWorkdayTimes() {
         ListView listView = findViewById(R.id.listView);
         List<Map<String, Object>> workdayTimes = new ArrayList<>();
 
-        Cursor c = myDataBase.rawQuery("SELECT * FROM workdaytimes ORDER BY arriveTime DESC", null);
+        Cursor c = DbConnection.getDbConnection(this).rawQuery("SELECT * FROM workdaytimes ORDER BY arriveTime DESC", null);
         c.moveToFirst();
 
         while(!c.isAfterLast()) {
@@ -164,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
             workDayTime.put("id", c.getInt(idIndex));
             workDayTime.put("arriveTime", longToDateTimeString(c.getLong(arriveTimeIndex)));
             workDayTime.put("leaveTime", longToDateTimeString(c.getLong(leaveTimeIndex)));
-            double workHour = getHourInterval(c.getLong(arriveTimeIndex), c.getLong(leaveTimeIndex));
+            double workHour = DateTimeUtils.getHourInterval(c.getLong(arriveTimeIndex), c.getLong(leaveTimeIndex));
             workDayTime.put("workHour", workHour);
 
             workdayTimes.add(workDayTime);
@@ -205,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
         Long id = c.getLong(idIndex);
 
         String sql = "UPDATE workdaytimes SET arriveTime = ? where id = ?";
-        myDataBase.execSQL(sql, new Long[] {arriveDateTime.getTime(), id});
+        DbConnection.getDbConnection(this).execSQL(sql, new Long[] {arriveDateTime.getTime(), id});
     }
 
     private void updateLeaveTime(Date leaveDateTime) {
@@ -215,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
         Long id = c.getLong(idIndex);
 
         String sql = "UPDATE workdaytimes SET leaveTime = ? where id = ?";
-        myDataBase.execSQL(sql, new Long[] {leaveDateTime.getTime(), id});
+        DbConnection.getDbConnection(this).execSQL(sql, new Long[] {leaveDateTime.getTime(), id});
     }
 
     private void updateTodayImgPaths(String imgPaths) {
@@ -225,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
         Long id = c.getLong(idIndex);
 
         String sql = "UPDATE workdaytimes SET imgPaths = ? where id = ?";
-        myDataBase.execSQL(sql, new Object[] {imgPaths, id});
+        DbConnection.getDbConnection(this).execSQL(sql, new Object[] {imgPaths, id});
     }
 
     public boolean hasRecordForDate(Date date) {
@@ -253,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
 
         String sql = "SELECT * FROM workdaytimes WHERE (arriveTime > ? and arriveTime < ?) or (leaveTime > ? and leaveTime < ?)";
 
-        return myDataBase.rawQuery(sql , new String[] {String.valueOf(dayStartTime), String.valueOf(dayEndTime), String.valueOf(dayStartTime), String.valueOf(dayEndTime)});
+        return DbConnection.getDbConnection(this).rawQuery(sql , new String[] {String.valueOf(dayStartTime), String.valueOf(dayEndTime), String.valueOf(dayStartTime), String.valueOf(dayEndTime)});
     }
 
     public void capturePhoto() {
@@ -262,12 +246,12 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imageFileUri);
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
-        startActivityForResult(intent, 1);
+        startActivityForResult(intent, CAMERA_REQUEST_CODE);
     }
 
     private File generateOutputImageFileForDate(Date date) {
         Date currentDate = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-hh-mm-ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         String timeStamp = sdf.format(currentDate);
 
         return generateOutputImageFileForDate(date, timeStamp + ".jpg");
@@ -293,45 +277,10 @@ public class MainActivity extends AppCompatActivity {
         Cursor c = getRecordForDate(date);
         c.moveToFirst();
         int imgPathsIndex = c.getColumnIndex("imgPaths");
-        String[] imgPathsArray = convertStringToArray(c.getString(imgPathsIndex));
-        String[] updatedImgPathsArray = appendStringArray(imgPathsArray, path);
-        String updatedImgPaths = convertArrayToString(updatedImgPathsArray);
+        String[] imgPathsArray = CommonUtils.convertStringToArray(c.getString(imgPathsIndex));
+        String[] updatedImgPathsArray = CommonUtils.appendStringArray(imgPathsArray, path);
+        String updatedImgPaths = CommonUtils.convertArrayToString(updatedImgPathsArray);
         updateTodayImgPaths(updatedImgPaths);
-    }
-
-    public static String strSeparator = "__,__";
-    public static String convertArrayToString(String[] array){
-        String str = "";
-        for (int i = 0;i<array.length; i++) {
-            str = str+array[i];
-            // Do not append comma at the end of last element
-            if(i<array.length-1){
-                str = str+strSeparator;
-            }
-        }
-        return str;
-    }
-
-    public static String[] convertStringToArray(String str){
-        if (str == null || str.isEmpty()) {
-            return new String [] {};
-        }
-
-        String[] arr = str.split(strSeparator);
-        return arr;
-    }
-
-    public static String[] appendStringArray(String[] originalArray, String newItem)
-    {
-        int currentSize = originalArray.length;
-        int newSize = currentSize + 1;
-        String[] tempArray = new String[ newSize ];
-        for (int i=0; i < currentSize; i++)
-        {
-            tempArray[i] = originalArray [i];
-        }
-        tempArray[newSize- 1] = newItem;
-        return tempArray;
     }
 
     public String generateDateString(Date date) {
@@ -357,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(intent, 2);
+                startActivityForResult(intent, ALBUM_REQUEST_CODE);
                 popupWindow.dismiss();
             }
         });
@@ -452,7 +401,16 @@ public class MainActivity extends AppCompatActivity {
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
             TextView tvId = view.findViewById(R.id.workdayTimeId);
             TextView tvArriveTime = view.findViewById(R.id.arriveTime);
-            Toast.makeText(MainActivity.this, tvId.getText() + "..." + tvArriveTime.getText(), Toast.LENGTH_SHORT).show();
+            TextView tvLeaveTime = view.findViewById(R.id.leaveTime);
+            TextView tvWorkHour = view.findViewById(R.id.workHour);
+
+            Intent intent = new Intent(MainActivity.this, DetailActivity.class);
+            intent.putExtra("id", tvId.getText());
+            intent.putExtra("arriveTime", tvArriveTime.getText());
+            intent.putExtra("leaveTime", tvLeaveTime.getText());
+            intent.putExtra("workHour", tvWorkHour.getText());
+
+            startActivity(intent);
         }
     }
 

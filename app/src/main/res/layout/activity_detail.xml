@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/workDateLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginTop="30dp">
+
+        <TextView
+            android:id="@+id/tvWorkDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="30dp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/workdayTimeDetailLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="30dp"
+        android:layout_below="@id/workDateLayout">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="上班时间:" />
+
+            <EditText
+                android:id="@+id/edArriveTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#ededed"
+                android:layout_marginLeft="10dp"
+                android:width="100dp"
+                android:editable="false" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="下班时间:" />
+
+            <EditText
+                android:id="@+id/edLeaveTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#ededed"
+                android:layout_marginLeft="10dp"
+                android:width="100dp"
+                android:editable="false" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="工作时间:" />
+
+            <EditText
+                android:id="@+id/edWorkHour"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#ededed"
+                android:layout_marginLeft="10dp"
+                android:width="100dp"
+                android:editable="false" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <GridLayout
+        android:id="@+id/imgGrid"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/workdayTimeDetailLayout"
+        android:layout_above="@id/detailActivityButtonsLayout"
+        android:columnCount="2">
+
+    </GridLayout>
+
+    <LinearLayout
+        android:id="@+id/detailActivityButtonsLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="20dp">
+
+        <Button
+            android:id="@+id/btSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="保存" />
+
+        <Button
+            android:id="@+id/btReset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="重置" />
+
+        <Button
+            android:id="@+id/btBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="返回" />
+
+    </LinearLayout>
+
+</RelativeLayout>

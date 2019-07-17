@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">WorkdayTime</string>
+    <string name="title_activity_detail">DetailActivity</string>
+    <string name="title_activity_time_picker">TimePicker</string>
 </resources>
