@@ -99,15 +99,22 @@
 
     </LinearLayout>
 
-    <GridLayout
-        android:id="@+id/imgGrid"
+    <ScrollView
+        android:id="@+id/imgScrollView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_below="@id/workdayTimeDetailLayout"
-        android:layout_above="@id/detailActivityButtonsLayout"
-        android:columnCount="2">
+        android:layout_above="@id/detailActivityButtonsLayout">
 
-    </GridLayout>
+        <GridLayout
+            android:id="@+id/imgGrid"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        </GridLayout>
+    </ScrollView>
+
+
 
     <LinearLayout
         android:id="@+id/detailActivityButtonsLayout"

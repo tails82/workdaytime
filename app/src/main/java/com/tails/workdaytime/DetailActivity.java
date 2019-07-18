@@ -8,14 +8,15 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 
+import android.util.DisplayMetrics;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -25,6 +26,7 @@ import java.util.Date;
 
 public class DetailActivity extends AppCompatActivity {
     private static final String ORIGINAL_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    private static final int NUMBER_OF_IMAGERS_PER_ROW = 4;
 
     private String currentDate;
     private TextView tvWorkDate;
@@ -118,13 +120,19 @@ public class DetailActivity extends AppCompatActivity {
         String[] imgPathsArray = CommonUtils.convertStringToArray(imgPaths);
 
         GridLayout gridLayout = findViewById(R.id.imgGrid);
+        gridLayout.setColumnCount(NUMBER_OF_IMAGERS_PER_ROW);
+        WindowManager wm = this.getWindowManager();
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        wm.getDefaultDisplay().getMetrics(displayMetrics);
+        int screenWidthInPixels = displayMetrics.widthPixels;
 
         for (String path : imgPathsArray) {
             Bitmap bmImg = BitmapFactory.decodeFile(path);
             ImageView imageView = new ImageView(DetailActivity.this);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(400, 400);
-            int marginSpace = (int) (5 * this.getResources().getDisplayMetrics().density);
-            params.setMargins(marginSpace, marginSpace, marginSpace, marginSpace);
+            int marginInPixels = (int) (5 * this.getResources().getDisplayMetrics().density);
+            int imageWidth = screenWidthInPixels / NUMBER_OF_IMAGERS_PER_ROW - 2 * marginInPixels;
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(imageWidth, imageWidth);
+            params.setMargins(marginInPixels, marginInPixels, marginInPixels, marginInPixels);
             imageView.setLayoutParams(params);
             imageView.setImageBitmap(bmImg);
             gridLayout.addView(imageView);

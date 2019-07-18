@@ -10,7 +10,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -58,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         DbConnection.initialDataBase(this);
-        loadWorkdayTimes();
 
         Button btArrive = findViewById(R.id.btArrive);
         Button btLeave = findViewById(R.id.btLeave);
@@ -67,6 +65,13 @@ public class MainActivity extends AppCompatActivity {
         btArrive.setOnClickListener(new ArriveButtonOnClickListener());
         btLeave.setOnClickListener(new LeaveButtonOnClickListener());
         btUpload.setOnClickListener(new UploadButtonOnClickListener());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        loadWorkdayTimes();
     }
 
     @Override
