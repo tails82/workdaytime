@@ -164,4 +164,26 @@ public class FileUtils {
     private static boolean isDownloadsDocument(Uri uri) {
         return "com.android.providers.downloads.documents".equals(uri.getAuthority());
     }
+
+
+    public static void deleteDirectory(File folder) {
+        if (folder.exists()) {
+            File[] files = folder.listFiles();
+
+            if (files == null) {
+                return;
+            }
+
+            for (int i = 0; i < files.length; i++) {
+                if (files[i].isDirectory()) {
+                    deleteDirectory(files[i]);
+                } else {
+                    files[i].delete();
+                }
+            }
+        }
+
+        folder.delete();
+    }
+
 }

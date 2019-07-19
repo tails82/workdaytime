@@ -126,22 +126,22 @@
         android:layout_marginBottom="20dp">
 
         <Button
+            android:id="@+id/btUploadOnDetailActivity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="上传" />
+
+        <Button
             android:id="@+id/btSave"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="保存" />
 
         <Button
-            android:id="@+id/btReset"
+            android:id="@+id/btDelete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="重置" />
-
-        <Button
-            android:id="@+id/btBack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="返回" />
+            android:text="删除" />
 
     </LinearLayout>
 

@@ -40,4 +40,32 @@ public class DateTimeUtils {
         return getHourInterval(longFromDateTime, longToDateTime);
     }
 
+    public static long convertStringDateTimeToLong(String stringDateTime, String format) {
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+        Date dateTime = null;
+        try {
+            dateTime = sdf.parse(stringDateTime);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return dateTime.getTime();
+    }
+
+    public static String generateDateString(Date date, String format) {
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+        return sdf.format(date);
+    }
+
+    public static Date convertStringToDateTime(String dateTimeString, String format) {
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+        Date dateTime = null;
+        try {
+            dateTime = sdf.parse(dateTimeString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return dateTime;
+    }
 }

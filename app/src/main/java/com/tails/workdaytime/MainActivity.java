@@ -12,26 +12,18 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.StrictMode;
-import android.provider.MediaStore;
-import android.view.Gravity;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
-import android.widget.PopupWindow;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -40,11 +32,10 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private static final int CHECK_PERMISSION_REQUEST_CODE = 1;
-    private static final int CAMERA_REQUEST_CODE = 2;
-    private static final int ALBUM_REQUEST_CODE = 3;
     public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
-    private Uri imageFileUri;
-    private Date uploadDate;
+
+    CommonListeners commonListeners;
+    UploadUtils uploadUtils;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,10 +52,15 @@ public class MainActivity extends AppCompatActivity {
         Button btArrive = findViewById(R.id.btArrive);
         Button btLeave = findViewById(R.id.btLeave);
         Button btUpload = findViewById(R.id.btUpload);
+        Button btCreate = findViewById(R.id.btCreate);
+
+        commonListeners = new CommonListeners(this);
+        uploadUtils = new UploadUtils(this, commonListeners);
 
         btArrive.setOnClickListener(new ArriveButtonOnClickListener());
         btLeave.setOnClickListener(new LeaveButtonOnClickListener());
-        btUpload.setOnClickListener(new UploadButtonOnClickListener());
+        btUpload.setOnClickListener(commonListeners.getUploadButtonOnClickListener());
+        btCreate.setOnClickListener(new CreateButtonOnClickListener());
     }
 
     @Override
@@ -78,19 +74,21 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
-            appendPictureForDate(uploadDate, imageFileUri.getPath());
-        } else if (requestCode == ALBUM_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+        if (requestCode ==uploadUtils.CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
+            uploadUtils.appendPictureForDate(commonListeners.getUploadDate(), commonListeners.getImageFileUri().getPath());
+        } else if (requestCode == uploadUtils.ALBUM_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             Uri selectedFileUri = data.getData();
             String selectedFileRealPath = FileUtils.getRealPathFromUri(getApplicationContext(), selectedFileUri);
             File selectedFile = new File(selectedFileRealPath);
-            File destFile = generateOutputImageFileForDate(uploadDate, FileUtils.extractFileName(selectedFileUri.getPath()));
+            File destFile = CommonUtils.generateOutputImageFileForDate(commonListeners.getUploadDate(), FileUtils.extractFileName(selectedFileUri.getPath()));
+
             try {
                 FileUtils.copyFile(selectedFile, destFile);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            appendPictureForDate(uploadDate, destFile.getAbsolutePath());
+
+            uploadUtils.appendPictureForDate(commonListeners.getUploadDate(), destFile.getAbsolutePath());
         }
     }
 
@@ -170,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void saveOrUpdateArriveTime(Date dateTime) {
-        if (hasRecordForDate(dateTime)) {
+        if (CommonUtils.hasRecordForDate(this, dateTime)) {
             updateArriveTime(dateTime);
             loadWorkdayTimes();
         } else {
@@ -179,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void saveOrUpdateLeaveTime(Date dateTime) {
-        if (hasRecordForDate(dateTime)) {
+        if (CommonUtils.hasRecordForDate(this, dateTime)) {
             updateLeaveTime(dateTime);
             loadWorkdayTimes();
         } else {
@@ -188,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateArriveTime(Date arriveDateTime) {
-        Cursor c = getRecordForDate(arriveDateTime);
+        Cursor c = CommonUtils.getRecordForDate(this, arriveDateTime);
         c.moveToFirst();
         int idIndex = c.getColumnIndex("id");
         Long id = c.getLong(idIndex);
@@ -198,152 +196,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateLeaveTime(Date leaveDateTime) {
-        Cursor c = getRecordForDate(leaveDateTime);
+        Cursor c = CommonUtils.getRecordForDate(this, leaveDateTime);
         c.moveToFirst();
         int idIndex = c.getColumnIndex("id");
         Long id = c.getLong(idIndex);
 
         String sql = "UPDATE workdaytimes SET leaveTime = ? where id = ?";
         DbConnection.getDbConnection(this).execSQL(sql, new Long[] {leaveDateTime.getTime(), id});
-    }
-
-    private void updateTodayImgPaths(String imgPaths) {
-        Cursor c = getRecordForDate(uploadDate);
-        c.moveToFirst();
-        int idIndex = c.getColumnIndex("id");
-        Long id = c.getLong(idIndex);
-
-        String sql = "UPDATE workdaytimes SET imgPaths = ? where id = ?";
-        DbConnection.getDbConnection(this).execSQL(sql, new Object[] {imgPaths, id});
-    }
-
-    public boolean hasRecordForDate(Date date) {
-
-        return getRecordForDate(date).getCount() > 0;
-    }
-
-    public Cursor getRecordForDate(Date date) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-
-        cal.set(Calendar.HOUR_OF_DAY, 00);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-
-        Long dayStartTime = cal.getTime().getTime();
-
-        cal.set(Calendar.HOUR_OF_DAY, 23);
-        cal.set(Calendar.MINUTE, 59);
-        cal.set(Calendar.SECOND, 59);
-        cal.set(Calendar.MILLISECOND, 999);
-
-        Long dayEndTime = cal.getTime().getTime();
-
-        String sql = "SELECT * FROM workdaytimes WHERE (arriveTime > ? and arriveTime < ?) or (leaveTime > ? and leaveTime < ?)";
-
-        return DbConnection.getDbConnection(this).rawQuery(sql , new String[] {String.valueOf(dayStartTime), String.valueOf(dayEndTime), String.valueOf(dayStartTime), String.valueOf(dayEndTime)});
-    }
-
-    public void capturePhoto() {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        imageFileUri = getOutputImageFileUri();
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, imageFileUri);
-        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-        StrictMode.setVmPolicy(builder.build());
-        startActivityForResult(intent, CAMERA_REQUEST_CODE);
-    }
-
-    private File generateOutputImageFileForDate(Date date) {
-        Date currentDate = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        String timeStamp = sdf.format(currentDate);
-
-        return generateOutputImageFileForDate(date, timeStamp + ".jpg");
-    }
-
-    private File generateOutputImageFileForDate(Date date, String fileName) {
-        File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() + "/workdaytime/" + generateDateString(date));
-
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
-        File mediaFile = new File(dir, fileName);
-
-        return mediaFile;
-    }
-
-    private Uri getOutputImageFileUri() {
-        return Uri.fromFile(generateOutputImageFileForDate(uploadDate));
-    }
-
-    public void appendPictureForDate(Date date, String path) {
-        Cursor c = getRecordForDate(date);
-        c.moveToFirst();
-        int imgPathsIndex = c.getColumnIndex("imgPaths");
-        String[] imgPathsArray = CommonUtils.convertStringToArray(c.getString(imgPathsIndex));
-        String[] updatedImgPathsArray = CommonUtils.appendStringArray(imgPathsArray, path);
-        String updatedImgPaths = CommonUtils.convertArrayToString(updatedImgPathsArray);
-        updateTodayImgPaths(updatedImgPaths);
-    }
-
-    public String generateDateString(Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        return sdf.format(date);
-    }
-
-    private void showUploadPopup() {
-        View imageUploadPopup = View.inflate(this, R.layout.image_upload_popup, null);
-        Button bt_album = imageUploadPopup.findViewById(R.id.btn_pop_album);
-        Button bt_camera = imageUploadPopup.findViewById(R.id.btn_pop_camera);
-        Button bt_cancle = imageUploadPopup.findViewById(R.id.btn_pop_cancel);
-
-        int weight = getResources().getDisplayMetrics().widthPixels;
-        int height = getResources().getDisplayMetrics().heightPixels*1/3;
-
-        final PopupWindow popupWindow = new PopupWindow(imageUploadPopup,weight,height);
-        popupWindow.setFocusable(true);
-
-        popupWindow.setOutsideTouchable(true);
-
-        bt_album.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                startActivityForResult(intent, ALBUM_REQUEST_CODE);
-                popupWindow.dismiss();
-            }
-        });
-
-        bt_camera.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                capturePhoto();
-                popupWindow.dismiss();
-            }
-        });
-
-        bt_cancle.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                popupWindow.dismiss();
-            }
-        });
-
-        popupWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
-            @Override
-            public void onDismiss() {
-                WindowManager.LayoutParams lp = getWindow().getAttributes();
-                lp.alpha = 1.0f;
-                getWindow().setAttributes(lp);
-            }
-        });
-
-        WindowManager.LayoutParams lp = getWindow().getAttributes();
-        lp.alpha = 0.5f;
-        getWindow().setAttributes(lp);
-        popupWindow.showAtLocation(imageUploadPopup, Gravity.BOTTOM,0,50);
     }
 
     class ArriveButtonOnClickListener implements View.OnClickListener {
@@ -386,20 +245,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    class UploadButtonOnClickListener implements View.OnClickListener {
-
-        @Override
-        public void onClick(View view) {
-            Date nowDate = new Date();
-            if (!hasRecordForDate(nowDate)) {
-                Toast.makeText(MainActivity.this, "今天还没有记录上下班时间！", Toast.LENGTH_LONG).show();
-                return;
-            }
-            uploadDate = nowDate;
-            showUploadPopup();
-        }
-    }
-
     class ListViewItemClickListener implements AdapterView.OnItemClickListener {
 
         @Override
@@ -414,6 +259,16 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("arriveTime", tvArriveTime.getText());
             intent.putExtra("leaveTime", tvLeaveTime.getText());
             intent.putExtra("workHour", tvWorkHour.getText());
+
+            startActivity(intent);
+        }
+    }
+
+    class CreateButtonOnClickListener implements View.OnClickListener {
+
+        @Override
+        public void onClick(View view) {
+            Intent intent = new Intent(MainActivity.this, CreateActivity.class);
 
             startActivity(intent);
         }

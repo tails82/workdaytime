@@ -2,15 +2,18 @@ package com.tails.workdaytime;
 
 import android.app.AlertDialog;
 import android.app.TimePickerDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -18,8 +21,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -33,23 +39,38 @@ public class DetailActivity extends AppCompatActivity {
     private EditText edArriveTime;
     private EditText edLeaveTime;
     private EditText edWorkHour;
+    private Button btUpload;
+    private Button btSave;
+    private Button btDelete;
     private String arriveDateTime;
     private String leaveDateTime;
     private String workHour;
     private String id;
+
+    private CommonListeners commonListeners;
+    private UploadUtils uploadUtils;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
 
+        commonListeners = new CommonListeners(this);
+        uploadUtils = new UploadUtils(this, commonListeners);
+
         edArriveTime = findViewById(R.id.edArriveTime);
         edLeaveTime = findViewById(R.id.edLeaveTime);
         edWorkHour = findViewById(R.id.edWorkHour);
         tvWorkDate = findViewById(R.id.tvWorkDate);
+        btUpload = findViewById(R.id.btUploadOnDetailActivity);
+        btSave = findViewById(R.id.btSave);
+        btDelete = findViewById(R.id.btDelete);
 
         edArriveTime.setOnClickListener(new TimeEditTextListener());
         edLeaveTime.setOnClickListener(new TimeEditTextListener());
+        btUpload.setOnClickListener(commonListeners.getUploadButtonOnClickListener());
+        btSave.setOnClickListener(new SaveButtonListener());
+        btDelete.setOnClickListener(new DeleteButtonListener());
 
         loadWorkDayTime();
         loadImage();
@@ -103,9 +124,15 @@ public class DetailActivity extends AppCompatActivity {
         return getDateFromTextEdit(timeTextEdit).getMinutes();
     }
 
-    // TODO
     private void updateDBData() {
+        arriveDateTime = currentDate + " " + edArriveTime.getText().toString();
+        leaveDateTime = currentDate + " " + edLeaveTime.getText().toString();
+        workHour = edWorkHour.getText().toString();
+        long arriveDateTimeLong = DateTimeUtils.convertStringDateTimeToLong(arriveDateTime, ORIGINAL_DATETIME_FORMAT);
+        long leaveDateTimeLong = DateTimeUtils.convertStringDateTimeToLong(leaveDateTime, ORIGINAL_DATETIME_FORMAT);
 
+        DbConnection.getDbConnection(this).execSQL("UPDATE workdaytimes SET arriveTime = ?, leaveTime = ? WHERE id = ?",
+                new Long[] {arriveDateTimeLong, leaveDateTimeLong, Long.valueOf(id)});
     }
 
     private void loadImage() {
@@ -126,6 +153,8 @@ public class DetailActivity extends AppCompatActivity {
         wm.getDefaultDisplay().getMetrics(displayMetrics);
         int screenWidthInPixels = displayMetrics.widthPixels;
 
+        gridLayout.removeAllViews();
+
         for (String path : imgPathsArray) {
             Bitmap bmImg = BitmapFactory.decodeFile(path);
             ImageView imageView = new ImageView(DetailActivity.this);
@@ -136,6 +165,40 @@ public class DetailActivity extends AppCompatActivity {
             imageView.setLayoutParams(params);
             imageView.setImageBitmap(bmImg);
             gridLayout.addView(imageView);
+        }
+    }
+
+    private void deleteRecordById(String id) {
+        DbConnection.getDbConnection(this).execSQL("DELETE FROM workdaytimes where id = ?", new Long[]{Long.valueOf(id)});
+    }
+
+    private void deleteImagesByDate(String dateString) {
+        Date date = DateTimeUtils.convertStringToDateTime(dateString, "yyyy-MM-dd");
+        File dir = CommonUtils.generateOutputImageFileFolderForDate(date);
+        FileUtils.deleteDirectory(dir);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == uploadUtils.CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
+            uploadUtils.appendPictureForDate(commonListeners.getUploadDate(), commonListeners.getImageFileUri().getPath());
+            loadImage();
+        } else if (requestCode == uploadUtils.ALBUM_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            Uri selectedFileUri = data.getData();
+            String selectedFileRealPath = FileUtils.getRealPathFromUri(getApplicationContext(), selectedFileUri);
+            File selectedFile = new File(selectedFileRealPath);
+            File destFile = CommonUtils.generateOutputImageFileForDate(commonListeners.getUploadDate(), FileUtils.extractFileName(selectedFileUri.getPath()));
+
+            try {
+                FileUtils.copyFile(selectedFile, destFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            uploadUtils.appendPictureForDate(commonListeners.getUploadDate(), destFile.getAbsolutePath());
+            loadImage();
         }
     }
 
@@ -150,20 +213,39 @@ public class DetailActivity extends AppCompatActivity {
                     timeString = DateTimeUtils.formatDateTime(timeString, "H:m:00", "HH:mm:00");
                     ((EditText) view).setText(timeString);
                     edWorkHour.setText(String.valueOf(calculateWorkHour()));
-
-                    if (view.getId() == R.id.edArriveTime) {
-                        arriveDateTime = currentDate + " " + (((EditText) view).getText()).toString();
-                    } else if (view.getId() == R.id.edLeaveTime) {
-                        leaveDateTime = currentDate + " " + (((EditText) view).getText()).toString();
-                    }
-
-                    workHour = edWorkHour.getText().toString();
-
-                    updateDBData();
                 }
             }, getHourFromTextEdit((EditText) view), getMinuteFromTextEdit((EditText) view), true);
 
             timePickerDialog.show();
+        }
+    }
+
+    public class SaveButtonListener implements View.OnClickListener {
+
+        @Override
+        public void onClick(View view) {
+            updateDBData();
+        }
+    }
+
+    public class DeleteButtonListener implements View.OnClickListener {
+
+        @Override
+        public void onClick(View view) {
+            new androidx.appcompat.app.AlertDialog.Builder(DetailActivity.this)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setTitle("确定删除？")
+                    .setMessage("确定删除记录吗？")
+                    .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            deleteRecordById(id);
+                            deleteImagesByDate(currentDate);
+                            finish();
+                        }
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
         }
     }
 }

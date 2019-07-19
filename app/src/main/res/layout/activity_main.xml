@@ -77,7 +77,23 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/listViewHeader"
-        android:layout_alignParentBottom="true">
+        android:layout_above="@id/bottomButtonsLayout">
     </ListView>
+
+    <LinearLayout
+        android:id="@+id/bottomButtonsLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:gravity="center_horizontal"
+        android:layout_marginBottom="30dp">
+
+        <Button
+            android:id="@+id/btCreate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="新增"/>
+
+    </LinearLayout>
 
 </RelativeLayout>
