@@ -68,4 +68,11 @@ public class DateTimeUtils {
 
         return dateTime;
     }
+
+    public static String convertLongToString(long dateLong, String format) {
+        Date date = new Date(dateLong);
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+
+        return sdf.format(date);
+    }
 }

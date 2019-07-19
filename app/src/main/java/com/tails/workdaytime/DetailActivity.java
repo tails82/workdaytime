@@ -79,14 +79,21 @@ public class DetailActivity extends AppCompatActivity {
     public void loadWorkDayTime() {
         Intent intent = getIntent();
         id = intent.getStringExtra("id");
-        arriveDateTime = intent.getStringExtra("arriveTime");
-        leaveDateTime = intent.getStringExtra("leaveTime");
+
+        Cursor c = CommonUtils.getRecordForId(this, Long.valueOf(id));
+        c.moveToFirst();
+        int arriveTimeColumnIndex = c.getColumnIndex("arriveTime");
+        int leaveTimeColumnIndex = c.getColumnIndex("leaveTime");
+
+        arriveDateTime = DateTimeUtils.convertLongToString(c.getLong(arriveTimeColumnIndex), ORIGINAL_DATETIME_FORMAT);
+        leaveDateTime = DateTimeUtils.convertLongToString(c.getLong(leaveTimeColumnIndex), ORIGINAL_DATETIME_FORMAT);
+
         String expectedDateFormat = "yyyy-MM-dd";
         String expectedTimeFormat = "HH:mm:ss";
         String arriveDate = DateTimeUtils.formatDateTime(arriveDateTime, ORIGINAL_DATETIME_FORMAT, expectedDateFormat);
         String arriveTime = DateTimeUtils.formatDateTime(arriveDateTime, ORIGINAL_DATETIME_FORMAT, expectedTimeFormat);
         String leaveTime = DateTimeUtils.formatDateTime(leaveDateTime, ORIGINAL_DATETIME_FORMAT, expectedTimeFormat);
-        workHour = intent.getStringExtra("workHour");
+        workHour = String.valueOf(DateTimeUtils.getHourInterval(c.getLong(arriveTimeColumnIndex), c.getLong(leaveTimeColumnIndex)));
 
         currentDate = arriveDate;
         tvWorkDate.setText(arriveDate);

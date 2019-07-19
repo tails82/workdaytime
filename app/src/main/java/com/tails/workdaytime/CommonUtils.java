@@ -82,6 +82,21 @@ public class CommonUtils {
         return getRecordForDate(activity, date).getCount() > 0;
     }
 
+    public static long getRecordIdForDate(AppCompatActivity activity, Date date) {
+
+        Cursor c =  getRecordForDate(activity, date);
+
+        if (c.getCount() == 0) {
+            return -1;
+        }
+
+        c.moveToFirst();
+        int idColumnIndex = c.getColumnIndex("id");
+        Long id = c.getLong(idColumnIndex);
+
+        return id;
+    }
+
     public static Cursor getRecordForDate(AppCompatActivity activity, Date date) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
@@ -103,6 +118,12 @@ public class CommonUtils {
         String sql = "SELECT * FROM workdaytimes WHERE (arriveTime > ? and arriveTime < ?) or (leaveTime > ? and leaveTime < ?)";
 
         return DbConnection.getDbConnection(activity).rawQuery(sql , new String[] {String.valueOf(dayStartTime), String.valueOf(dayEndTime), String.valueOf(dayStartTime), String.valueOf(dayEndTime)});
+    }
+
+    public static Cursor getRecordForId(AppCompatActivity activity, long id) {
+        String sql = "SELECT * FROM workdaytimes WHERE id = ?";
+
+        return DbConnection.getDbConnection(activity).rawQuery(sql , new String[] {String.valueOf(id)});
     }
 
 }

@@ -6,6 +6,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
+import android.app.DatePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -15,6 +16,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
@@ -24,6 +26,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         Button btArrive = findViewById(R.id.btArrive);
         Button btLeave = findViewById(R.id.btLeave);
         Button btUpload = findViewById(R.id.btUpload);
-        Button btCreate = findViewById(R.id.btCreate);
+        Button btEdit = findViewById(R.id.btEdit);
 
         commonListeners = new CommonListeners(this);
         uploadUtils = new UploadUtils(this, commonListeners);
@@ -60,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         btArrive.setOnClickListener(new ArriveButtonOnClickListener());
         btLeave.setOnClickListener(new LeaveButtonOnClickListener());
         btUpload.setOnClickListener(commonListeners.getUploadButtonOnClickListener());
-        btCreate.setOnClickListener(new CreateButtonOnClickListener());
+        btEdit.setOnClickListener(new EditButtonOnClickListener());
     }
 
     @Override
@@ -250,27 +253,52 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
             TextView tvId = view.findViewById(R.id.workdayTimeId);
-            TextView tvArriveTime = view.findViewById(R.id.arriveTime);
-            TextView tvLeaveTime = view.findViewById(R.id.leaveTime);
-            TextView tvWorkHour = view.findViewById(R.id.workHour);
 
             Intent intent = new Intent(MainActivity.this, DetailActivity.class);
             intent.putExtra("id", tvId.getText());
-            intent.putExtra("arriveTime", tvArriveTime.getText());
-            intent.putExtra("leaveTime", tvLeaveTime.getText());
-            intent.putExtra("workHour", tvWorkHour.getText());
 
             startActivity(intent);
         }
     }
 
-    class CreateButtonOnClickListener implements View.OnClickListener {
+    class EditButtonOnClickListener implements View.OnClickListener {
 
         @Override
         public void onClick(View view) {
-            Intent intent = new Intent(MainActivity.this, CreateActivity.class);
+            Calendar calendar = Calendar.getInstance();
+            DatePickerDialog datePickerDialog = new DatePickerDialog(MainActivity.this, new DatePickerDialog.OnDateSetListener() {
+                @Override
+                public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                    Calendar targetCalendar = Calendar.getInstance();
+                    targetCalendar.set(year, month, day, 0, 0);
+                    final Date targetDate = targetCalendar.getTime();
 
-            startActivity(intent);
+                    long id = CommonUtils.getRecordIdForDate(MainActivity.this, targetDate);
+
+                    if (CommonUtils.getRecordIdForDate(MainActivity.this, targetDate) == -1) {
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .setTitle("记录不存在！")
+                                .setMessage("新建记录吗？")
+                                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialogInterface, int i) {
+                                        insertWorkdayTimeRecord(targetDate.getTime(), targetDate.getTime());
+                                        loadWorkdayTimes();
+                                    }
+                                })
+                                .setNegativeButton("取消", null)
+                                .show();
+                    } else {
+                        Intent intent = new Intent(MainActivity.this, DetailActivity.class);
+                        intent.putExtra("id", String.valueOf(id));
+
+                        startActivity(intent);
+                    }
+                }
+            }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+
+            datePickerDialog.show();
         }
     }
 

@@ -13,7 +13,6 @@ public class DbConnection {
             myDataBase = activity.openOrCreateDatabase("WorkdayTime", activity.MODE_PRIVATE, null);
         }
 
-//        myDataBase.execSQL("drop table IF EXISTS workdaytimes");
         myDataBase.execSQL("CREATE TABLE IF NOT EXISTS workdaytimes (id INTEGER PRIMARY KEY, arriveTime INTEGER , leaveTime INTEGER, imgPaths TEXT)");
     }
 

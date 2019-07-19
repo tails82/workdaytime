@@ -1,11 +1,9 @@
 package com.tails.workdaytime;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.StrictMode;
 import android.provider.MediaStore;
-import android.text.format.DateUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
