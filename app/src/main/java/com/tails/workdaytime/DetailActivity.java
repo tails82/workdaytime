@@ -24,6 +24,7 @@ import android.widget.TimePicker;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
@@ -170,6 +171,7 @@ public class DetailActivity extends AppCompatActivity {
             params.setMargins(marginInPixels, marginInPixels, marginInPixels, marginInPixels);
             imageView.setLayoutParams(params);
             imageView.setImageBitmap(bmImg);
+            imageView.setOnClickListener(new ImageViewOnClickListener(path));
             gridLayout.addView(imageView);
         }
     }
@@ -252,6 +254,23 @@ public class DetailActivity extends AppCompatActivity {
                     })
                     .setNegativeButton("取消", null)
                     .show();
+        }
+    }
+
+    public class ImageViewOnClickListener implements View.OnClickListener {
+        String path;
+
+        public ImageViewOnClickListener(String path) {
+            super();
+
+            this.path = path;
+        }
+
+        @Override
+        public void onClick(View view) {
+            Intent intent = new Intent(DetailActivity.this, ImageActivity.class);
+            intent.putExtra("path", path);
+            startActivity(intent);
         }
     }
 }
