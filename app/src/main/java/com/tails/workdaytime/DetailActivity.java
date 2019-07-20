@@ -31,7 +31,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class DetailActivity extends AppCompatActivity {
-    private static final String ORIGINAL_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     private static final int NUMBER_OF_IMAGERS_PER_ROW = 4;
 
     private String currentDate;
@@ -85,14 +84,14 @@ public class DetailActivity extends AppCompatActivity {
         int arriveTimeColumnIndex = c.getColumnIndex("arriveTime");
         int leaveTimeColumnIndex = c.getColumnIndex("leaveTime");
 
-        arriveDateTime = DateTimeUtils.convertLongToString(c.getLong(arriveTimeColumnIndex), ORIGINAL_DATETIME_FORMAT);
-        leaveDateTime = DateTimeUtils.convertLongToString(c.getLong(leaveTimeColumnIndex), ORIGINAL_DATETIME_FORMAT);
+        arriveDateTime = DateTimeUtils.convertLongToString(c.getLong(arriveTimeColumnIndex), CommonUtils.ORIGINAL_DATETIME_FORMAT);
+        leaveDateTime = DateTimeUtils.convertLongToString(c.getLong(leaveTimeColumnIndex), CommonUtils.ORIGINAL_DATETIME_FORMAT);
 
         String expectedDateFormat = "yyyy-MM-dd";
         String expectedTimeFormat = "HH:mm:ss";
-        String arriveDate = DateTimeUtils.formatDateTime(arriveDateTime, ORIGINAL_DATETIME_FORMAT, expectedDateFormat);
-        String arriveTime = DateTimeUtils.formatDateTime(arriveDateTime, ORIGINAL_DATETIME_FORMAT, expectedTimeFormat);
-        String leaveTime = DateTimeUtils.formatDateTime(leaveDateTime, ORIGINAL_DATETIME_FORMAT, expectedTimeFormat);
+        String arriveDate = DateTimeUtils.formatDateTime(arriveDateTime, CommonUtils.ORIGINAL_DATETIME_FORMAT, expectedDateFormat);
+        String arriveTime = DateTimeUtils.formatDateTime(arriveDateTime, CommonUtils.ORIGINAL_DATETIME_FORMAT, expectedTimeFormat);
+        String leaveTime = DateTimeUtils.formatDateTime(leaveDateTime, CommonUtils.ORIGINAL_DATETIME_FORMAT, expectedTimeFormat);
         workHour = String.valueOf(DateTimeUtils.getHourInterval(c.getLong(arriveTimeColumnIndex), c.getLong(leaveTimeColumnIndex)));
 
         currentDate = arriveDate;
@@ -106,12 +105,12 @@ public class DetailActivity extends AppCompatActivity {
         String arriveDateTime = currentDate + " " + edArriveTime.getText();
         String leaveDateTime = currentDate + " " + edLeaveTime.getText();
 
-        return DateTimeUtils.getHourInterval(ORIGINAL_DATETIME_FORMAT, arriveDateTime, leaveDateTime);
+        return DateTimeUtils.getHourInterval(CommonUtils.ORIGINAL_DATETIME_FORMAT, arriveDateTime, leaveDateTime);
     }
 
     private Date getDateFromTextEdit(EditText timeTextEdit) {
         String dateTimeString = currentDate + " " + timeTextEdit.getText();
-        SimpleDateFormat sdf = new SimpleDateFormat(ORIGINAL_DATETIME_FORMAT);
+        SimpleDateFormat sdf = new SimpleDateFormat(CommonUtils.ORIGINAL_DATETIME_FORMAT);
         Date dateTime = null;
 
         try {
@@ -135,8 +134,8 @@ public class DetailActivity extends AppCompatActivity {
         arriveDateTime = currentDate + " " + edArriveTime.getText().toString();
         leaveDateTime = currentDate + " " + edLeaveTime.getText().toString();
         workHour = edWorkHour.getText().toString();
-        long arriveDateTimeLong = DateTimeUtils.convertStringDateTimeToLong(arriveDateTime, ORIGINAL_DATETIME_FORMAT);
-        long leaveDateTimeLong = DateTimeUtils.convertStringDateTimeToLong(leaveDateTime, ORIGINAL_DATETIME_FORMAT);
+        long arriveDateTimeLong = DateTimeUtils.convertStringDateTimeToLong(arriveDateTime, CommonUtils.ORIGINAL_DATETIME_FORMAT);
+        long leaveDateTimeLong = DateTimeUtils.convertStringDateTimeToLong(leaveDateTime, CommonUtils.ORIGINAL_DATETIME_FORMAT);
 
         DbConnection.getDbConnection(this).execSQL("UPDATE workdaytimes SET arriveTime = ?, leaveTime = ? WHERE id = ?",
                 new Long[] {arriveDateTimeLong, leaveDateTimeLong, Long.valueOf(id)});

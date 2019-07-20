@@ -6,11 +6,13 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class DbConnection {
 
+    private final static String DATA_BASE_NAME = "WorkdayTime";
+
     private static SQLiteDatabase myDataBase;
 
     public static void initialDataBase(AppCompatActivity activity) {
         if (myDataBase == null) {
-            myDataBase = activity.openOrCreateDatabase("WorkdayTime", activity.MODE_PRIVATE, null);
+            myDataBase = activity.openOrCreateDatabase(DATA_BASE_NAME, activity.MODE_PRIVATE, null);
         }
 
         myDataBase.execSQL("CREATE TABLE IF NOT EXISTS workdaytimes (id INTEGER PRIMARY KEY, arriveTime INTEGER , leaveTime INTEGER, imgPaths TEXT)");
@@ -21,7 +23,14 @@ public class DbConnection {
             initialDataBase(activity);
         }
 
-        return  myDataBase;
+        return myDataBase;
+    }
+
+    public static void dropDataBase(AppCompatActivity activity) {
+        activity.deleteDatabase(DATA_BASE_NAME);
+        myDataBase = null;
+
+        myDataBase = getDbConnection(activity);
     }
 
 }

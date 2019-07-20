@@ -11,7 +11,7 @@ import java.util.Calendar;
 import java.util.Date;
 
 public class CommonUtils {
-
+    public static final String ORIGINAL_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     public static final String imageFolderName = "workdaytime";
 
     public static String strSeparator = "__,__";
@@ -124,6 +124,28 @@ public class CommonUtils {
         String sql = "SELECT * FROM workdaytimes WHERE id = ?";
 
         return DbConnection.getDbConnection(activity).rawQuery(sql , new String[] {String.valueOf(id)});
+    }
+
+    public static Cursor getAllRecords(AppCompatActivity activity) {
+        return DbConnection.getDbConnection(activity).rawQuery("SELECT * FROM workdaytimes ORDER BY arriveTime DESC", null);
+    }
+
+    public static void insertWorkdayTimeRecord(AppCompatActivity activity, Long arriveTime, Long leaveTime) {
+        if (arriveTime == null && leaveTime == null) {
+            return;
+        } else if (leaveTime == null) {
+            leaveTime = arriveTime;
+        } else if ( arriveTime == null) {
+            arriveTime = leaveTime;
+        }
+
+        String sql = "INSERT INTO workdaytimes(arriveTime, leaveTime) values (?, ?)";
+        DbConnection.getDbConnection(activity).execSQL(sql, new Long[]{arriveTime, leaveTime});
+    }
+
+    public static void insertWorkdayTimeRecord(AppCompatActivity activity, Long arriveTime, Long leaveTime, String imgPaths) {
+        String sql = "INSERT INTO workdaytimes(arriveTime, leaveTime, imgPaths) values (?, ?, ?)";
+        DbConnection.getDbConnection(activity).execSQL(sql, new String[]{String.valueOf(arriveTime), String.valueOf(leaveTime), imgPaths});
     }
 
 }

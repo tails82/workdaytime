@@ -7,12 +7,18 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
 import android.app.DatePickerDialog;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -20,6 +26,7 @@ import android.widget.DatePicker;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,7 +42,8 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
     private static final int CHECK_PERMISSION_REQUEST_CODE = 1;
-    public static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    private static final int CHOOSE_FILE_CODE = 5;
+    private static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     CommonListeners commonListeners;
     UploadUtils uploadUtils;
@@ -74,10 +82,47 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.main_menu, menu);
+
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        super.onOptionsItemSelected(item);
+
+        switch (item.getItemId()) {
+            case R.id.itemExportCSV:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                    new ExportDatabaseCSVTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                } else {
+                    new ExportDatabaseCSVTask(this).execute();
+                }
+
+                return true;
+            case R.id.itemImportCSV:
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
+
+                try {
+                    startActivityForResult(Intent.createChooser(intent, "Choose File"), CHOOSE_FILE_CODE);
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(this, "该手机没有文件选择器", Toast.LENGTH_LONG).show();
+                }
+
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode ==uploadUtils.CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
+        if (requestCode == uploadUtils.CAMERA_REQUEST_CODE && resultCode == RESULT_OK) {
             uploadUtils.appendPictureForDate(commonListeners.getUploadDate(), commonListeners.getImageFileUri().getPath());
         } else if (requestCode == uploadUtils.ALBUM_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             Uri selectedFileUri = data.getData();
@@ -92,6 +137,15 @@ public class MainActivity extends AppCompatActivity {
             }
 
             uploadUtils.appendPictureForDate(commonListeners.getUploadDate(), destFile.getAbsolutePath());
+        } else if (requestCode == CHOOSE_FILE_CODE && resultCode == RESULT_OK && data != null) {
+            Uri selectedFileUri = data.getData();
+            String selectedFileRealPath = FileUtils.getRealPathFromUri(getApplicationContext(), selectedFileUri);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                    new ImportCSVDatabaseTask(this, selectedFileRealPath).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                } else {
+                    new ImportCSVDatabaseTask(this, selectedFileRealPath).execute();
+                }
         }
     }
 
@@ -125,23 +179,11 @@ public class MainActivity extends AppCompatActivity {
         return sdf.format(date);
     }
 
-    public void insertWorkdayTimeRecord(Long arriveTime, Long leaveTime) {
-        if (arriveTime == null && leaveTime == null) {
-            return;
-        } else if (leaveTime == null) {
-            leaveTime = arriveTime;
-        } else if ( arriveTime == null) {
-            arriveTime = leaveTime;
-        }
-        String sql = "INSERT INTO workdaytimes(arriveTime, leaveTime) values (?, ?)";
-        DbConnection.getDbConnection(this).execSQL(sql, new Long[]{arriveTime, leaveTime});
-    }
-
     public void loadWorkdayTimes() {
         ListView listView = findViewById(R.id.listView);
         List<Map<String, Object>> workdayTimes = new ArrayList<>();
 
-        Cursor c = DbConnection.getDbConnection(this).rawQuery("SELECT * FROM workdaytimes ORDER BY arriveTime DESC", null);
+        Cursor c = CommonUtils.getAllRecords(this);
         c.moveToFirst();
 
         while(!c.isAfterLast()) {
@@ -175,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
             updateArriveTime(dateTime);
             loadWorkdayTimes();
         } else {
-            insertWorkdayTimeRecord(dateTime.getTime(), null);
+            CommonUtils.insertWorkdayTimeRecord(this, dateTime.getTime(), null);
         }
     }
 
@@ -184,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
             updateLeaveTime(dateTime);
             loadWorkdayTimes();
         } else {
-            insertWorkdayTimeRecord(dateTime.getTime(), null);
+            CommonUtils.insertWorkdayTimeRecord(this, dateTime.getTime(), null);
         }
     }
 
@@ -283,7 +325,7 @@ public class MainActivity extends AppCompatActivity {
                                 .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialogInterface, int i) {
-                                        insertWorkdayTimeRecord(targetDate.getTime(), targetDate.getTime());
+                                        CommonUtils.insertWorkdayTimeRecord(MainActivity.this, targetDate.getTime(), targetDate.getTime());
                                         loadWorkdayTimes();
                                     }
                                 })
