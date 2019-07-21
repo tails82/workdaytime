@@ -24,7 +24,6 @@ import android.widget.TimePicker;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
@@ -46,6 +45,7 @@ public class DetailActivity extends AppCompatActivity {
     private String leaveDateTime;
     private String workHour;
     private String id;
+    String[] imgPathsArray;
 
     private CommonListeners commonListeners;
     private UploadUtils uploadUtils;
@@ -151,7 +151,7 @@ public class DetailActivity extends AppCompatActivity {
         }
 
         String imgPaths = c.getString(0);
-        String[] imgPathsArray = CommonUtils.convertStringToArray(imgPaths);
+        imgPathsArray = CommonUtils.convertStringToArray(imgPaths);
 
         GridLayout gridLayout = findViewById(R.id.imgGrid);
         gridLayout.setColumnCount(NUMBER_OF_IMAGERS_PER_ROW);
@@ -172,6 +172,7 @@ public class DetailActivity extends AppCompatActivity {
             imageView.setLayoutParams(params);
             imageView.setImageBitmap(bmImg);
             imageView.setOnClickListener(new ImageViewOnClickListener(path));
+            imageView.setOnLongClickListener(new ImageViewOnLongClickListener(path));
             gridLayout.addView(imageView);
         }
     }
@@ -271,6 +272,39 @@ public class DetailActivity extends AppCompatActivity {
             Intent intent = new Intent(DetailActivity.this, ImageActivity.class);
             intent.putExtra("path", path);
             startActivity(intent);
+        }
+    }
+
+    public class ImageViewOnLongClickListener implements View.OnLongClickListener {
+        String path;
+
+        public ImageViewOnLongClickListener(String path) {
+            super();
+
+            this.path = path;
+        }
+
+        @Override
+        public boolean onLongClick(View view) {
+            new androidx.appcompat.app.AlertDialog.Builder(DetailActivity.this)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setTitle("确定删除？")
+                    .setMessage("确定删除图片吗？")
+                    .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            File file = new File(path);
+                            file.delete();
+                            imgPathsArray = CommonUtils.removeElementsFromArray(imgPathsArray, path);
+                            String imgPaths = CommonUtils.convertArrayToString(imgPathsArray);
+                            uploadUtils.updateDBImgPathsById(imgPaths, Long.valueOf(id));
+                            loadImage();
+                        }
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+
+            return false;
         }
     }
 }

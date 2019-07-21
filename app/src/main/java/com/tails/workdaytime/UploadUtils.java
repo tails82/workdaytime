@@ -26,15 +26,20 @@ public class UploadUtils {
         String[] imgPathsArray = CommonUtils.convertStringToArray(c.getString(imgPathsIndex));
         String[] updatedImgPathsArray = CommonUtils.appendStringArray(imgPathsArray, path);
         String updatedImgPaths = CommonUtils.convertArrayToString(updatedImgPathsArray);
-        updateTodayImgPaths(updatedImgPaths);
+        updateDBImgPaths(updatedImgPaths);
     }
 
-    private void updateTodayImgPaths(String imgPaths) {
+    private void updateDBImgPaths(String imgPaths) {
         Cursor c = CommonUtils.getRecordForDate(activity, commonListeners.getUploadDate());
         c.moveToFirst();
         int idIndex = c.getColumnIndex("id");
         Long id = c.getLong(idIndex);
 
+        String sql = "UPDATE workdaytimes SET imgPaths = ? where id = ?";
+        DbConnection.getDbConnection(activity).execSQL(sql, new Object[] {imgPaths, id});
+    }
+
+    public void updateDBImgPathsById(String imgPaths, long id) {
         String sql = "UPDATE workdaytimes SET imgPaths = ? where id = ?";
         DbConnection.getDbConnection(activity).execSQL(sql, new Object[] {imgPaths, id});
     }

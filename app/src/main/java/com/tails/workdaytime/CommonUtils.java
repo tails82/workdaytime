@@ -7,8 +7,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 public class CommonUtils {
     public static final String ORIGINAL_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -51,6 +54,24 @@ public class CommonUtils {
         tempArray[newSize- 1] = newItem;
 
         return tempArray;
+    }
+
+    public static String[] removeElementsFromArray(String[] stringArray, String element) {
+        List<String> list = new ArrayList<>();
+
+        for (String string : stringArray) {
+            if (!string.equals(element)) {
+                list.add(string);
+            }
+        }
+
+        String[] returnArray = new String[list.size()];
+
+        for(int i = 0; i < list.size(); i++) {
+            returnArray[i] = list.get(i);
+        }
+
+        return returnArray;
     }
 
     public static File generateOutputImageFileFolderForDate(Date date) {
